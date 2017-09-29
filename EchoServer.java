@@ -1,4 +1,10 @@
 
+/*  Oscar Alcaraz
+	CS 380 Networks
+	Exercise 1
+*/
+
+
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.ServerSocket;
@@ -8,51 +14,72 @@ import java.io.InputStream;
 import java.net.Socket;
 
 public final class EchoServer {
- 
-     public static void main(String[] args) throws Exception {
- 
-         boolean start = true;
-         
-         try (ServerSocket serverSocket = new ServerSocket(22222)) {
-        	 
-             while (true) {
-            	 
-                 try (Socket socket = serverSocket.accept()) {
-                     
-                     String address = socket.getInetAddress().getHostAddress();
- 
 
-                     if(start) {
-                    	 
-                         System.out.printf("Client onnected: %s%n", address);
-                       //System.out.print();
-                         start = false;
-                     }
+    public static void main(String[] args) throws Exception {
+
+        try (ServerSocket serverSocket = new ServerSocket(22222)) {
+			
+            while (true) {
+				
+                try  {
+                    
+                    Socket socket = serverSocket.accept();
+					
+                    Thread thread = new Thread(new AdditionalThread(socket));
+                    thread.start();
+
+                } catch (Exception e) {}
+            }
+        }
+    }
+
+
+    static final class AdditionalThread implements Runnable {
+        
+        private Socket socket;
+        private String address;
  
-                     InputStream is = socket.getInputStream();
-                     InputStreamReader isr = new InputStreamReader(is, "UTF-8");
-                     
-                     BufferedReader br = new BufferedReader(isr);
-                     String message = br.readLine();
- 
-                     if(!message.equals("exit")) { 
-                    	 
-                         OutputStream os = socket.getOutputStream();
-                         PrintStream out = new PrintStream(os, true, "UTF-8");
-                         
-                         String serverSend = "\nServer> " + message;
-                         out.println(serverSend);
-                         
-                     } else {
-                    	 
-                    	//System.out.print();
-                         System.out.printf("Client Disconnected: %s%n", address); // User exited, print that the client disconnected
-                         start = true;
-                     }
- 
-                 }
-             }
-         }
-     }
-     
- }
+        public AdditionalThread(Socket socket) {
+			
+            this.socket = socket;
+            address = socket.getInetAddress().getHostAddress();
+			
+        }
+
+        public void run() {
+
+            System.out.printf("Client Connected: %s%n", address);
+			//System.out.print();
+
+            try {
+             
+                InputStream is = socket.getInputStream();
+                InputStreamReader iSR = new InputStreamReader(is, "UTF-8");
+				
+                BufferedReader br = new BufferedReader(iSR);
+                String message = br.readLine();
+
+
+                while(message != null) {
+					
+                    OutputStream os = socket.getOutputStream();
+                    PrintStream out = new PrintStream(os, true, "UTF-8");
+					
+                    String serverSend = "Server >> " + message;
+                    out.println(serverSend);
+					
+                    message = br.readLine();
+                    
+                }
+
+				//System.out.print();
+                System.out.printf("Client Disconnected: %s%n", address);
+				
+                socket.close();
+				
+            } 
+            catch (Exception e) {}
+        }
+    }
+    
+}
